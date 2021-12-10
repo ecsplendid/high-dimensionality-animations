@@ -7,9 +7,12 @@ class CoordSysExample(Scene):
     def construct(self):
         # the location of the ticks depends on the x_range and y_range.
 
-        self.ax = Axes(x_range=[-1, 1, 0.1], y_range=[-1, 1, 0.1], tips=False)
-        plane = NumberPlane()
-        self.add(self.ax, plane)
+        self.ax = Axes(x_range=[-1, 1, 0.1], y_range=[-1, 1, 0.1], tips=False,
+                    axis_config={"include_numbers": True,"font_size": 24},
+                    x_axis_config={"numbers_to_include": np.linspace(-1,1,7)[[0,1,2,4,5,6]]},
+                    y_axis_config={"numbers_to_include": np.linspace(-1,1,7)})
+        # plane = NumberPlane()
+        self.add(self.ax)
 
         self.samples = []
         self.training_dots = []
@@ -21,15 +24,18 @@ class CoordSysExample(Scene):
         self.add_convex_hull(vertices)
         self.wait(1)
         ratio = self.add_test_data(vertices)
-        group = VGroup(self.label_training,self.ax,plane,self.convex_hull,self.testing_dots,self.label_ratio, *self.training_dots)
+        group = VGroup(self.label_training,self.ax,self.convex_hull,self.testing_dots,self.label_ratio, *self.training_dots)
         self.play(group.animate.scale(0.65).to_corner(UL))
-        self.ax2 = Axes(x_range=[1, 100, 10], y_range=[0, 100, 10], tips=False,axis_config={"include_numbers": True}).scale(0.3).to_corner(DR)
-        self.play(Create(self.ax2))
+        self.ax2 = Axes(x_range=[0, 100, 10], y_range=[0, 100, 10],tips=False,
+                    axis_config={"include_numbers": True,"font_size": 50},
+                    x_axis_config={"numbers_to_include": np.arange(0,100, 10)},
+                    y_axis_config={"numbers_to_include": np.arange(0,100, 10)}).scale(0.33).to_corner(DR)
+        y_label = self.ax2.get_y_axis_label(Tex("\% inside").scale(0.5), edge=LEFT, direction=LEFT, buff=0.4)
+        x_label = self.ax2.get_y_axis_label(Tex("training set size").scale(0.5), edge=DOWN, direction=DOWN, buff=0.4)
+        self.play(Create(VGroup(self.ax2,x_label,y_label)))
         self.add_ratio(ratio)
-        # labels = self.ax2.get_axis_labels(x_label_tex='training set size', y_label_tex='\% outside').set_color(BLUE)
-        # self.add(labels)
 
-        for i in range(4):
+        for i in range(6):
             self.play(FadeOut(self.testing_dots), FadeOut(self.convex_hull),FadeOut(self.label_ratio))
             self.add_training_data(10)
             vertices = self.compute_hull()
@@ -50,12 +56,15 @@ class CoordSysExample(Scene):
             text.next_to(number,RIGHT)
             number.add_updater(lambda m: m.set_value(len(self.samples)))
             self.label_training.align_on_border(LEFT+UP)
+            scale = 1
+        else:
+            scale=0.65
 
 
         for i in range(numbers):
             self.samples.append(np.random.rand(2) * 2 - 1)
             self.training_dots.append(
-                Dot(self.ax.coords_to_point(self.samples[-1][0], self.samples[-1][1]))
+                Dot(self.ax.coords_to_point(self.samples[-1][0], self.samples[-1][1])).scale(scale)
             )
             self.add(self.training_dots[-1])
             fadein = FadeIn(self.training_dots[-1])
@@ -68,7 +77,7 @@ class CoordSysExample(Scene):
 
     def add_test_data(self,vertices):
         if len(self.test_samples) == 0:
-            for i in range(200):
+            for i in range(400):
                 self.test_samples.append(np.random.rand(2) * 2 - 1)
                 self.testing_dots.append(
                     Dot(self.ax.coords_to_point(self.test_samples[-1][0], self.test_samples[-1][1]),color=GREEN,radius=0.05)
@@ -85,7 +94,7 @@ class CoordSysExample(Scene):
         if not hasattr(self, 'label_ratio'):
             number, text = self.label_ratio = VGroup(
                 DecimalNumber(inside),
-                Text("% lie within the hull"),
+                Text("% of test samples lie within the hull"),
             )
             self.label_ratio.set_color(GREEN)
             text.next_to(number,RIGHT)
@@ -126,7 +135,5 @@ class CoordSysExample(Scene):
 
     def add_ratio(self,ratio):
         dot = Dot(self.ax2.c2p(len(self.samples), ratio))
-        print(ratio)
-        # h_line = self.ax2.get_h_line(dot)
-        # v_line = self.ax2.get_v_line(dot)
+        # h_line = self.ax2.get_horizontal_line(dot, line_func=Line)
         self.play(FadeIn(dot))
