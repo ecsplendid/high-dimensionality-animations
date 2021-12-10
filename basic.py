@@ -1,7 +1,7 @@
 from manim import *
 import numpy as np
 from scipy.spatial import ConvexHull
-
+from matplotlib.path import Path
 
 class CoordSysExample(Scene):
     def construct(self):
@@ -14,9 +14,12 @@ class CoordSysExample(Scene):
         self.samples = []
 
         self.add_text()
-        self.add_training_data()
+        self.add_training_data(10)
         self.wait(1)
         self.add_convex_hull()
+        self.wait(1)
+        self.add_test_data()
+        self.wait(3)
 
         # Labels for the x-axis and y-axis.
         # y_label = grid.get_y_axis_label("y", edge=LEFT, direction=LEFT, buff=0.4)
@@ -38,9 +41,9 @@ class CoordSysExample(Scene):
         #     font_size=40,
         # )
 
-    def add_training_data(self):
+    def add_training_data(self,numbers):
         self.dots = []
-        for i in range(20):
+        for i in range(numbers):
             self.samples.append(np.random.rand(2) * 2 - 1)
             self.dots.append(
                 Dot(self.ax.coords_to_point(self.samples[-1][0], self.samples[-1][1]))
@@ -50,6 +53,34 @@ class CoordSysExample(Scene):
             fadein.set_run_time(0.2)
             self.play(fadein)
         self.samples = np.array(self.samples)
+
+    def add_test_data(self):
+        dots = []
+        samples = []
+        for i in range(200):
+            samples.append(np.random.rand(2) * 2 - 1)
+            dots.append(
+                Dot(self.ax.coords_to_point(samples[-1][0], samples[-1][1]),color=GREEN,radius=0.05)
+            )
+        test_data = VGroup(*dots)
+        fadein = FadeIn(test_data)
+        self.play(fadein)
+        hull = ConvexHull(self.samples)
+        hull_path = Path(self.samples[hull.vertices])
+        inside = 0.
+        for i in range(len(samples)):
+            inside += int(hull_path.contains_point(samples[i]))
+        inside /= len(samples)
+        inside *= 100
+        print(inside)
+        number, text = label = VGroup(
+            DecimalNumber(inside),
+            Text("% lie within the hull"),
+        )
+        label.set_color(GREEN)
+        text.next_to(number,RIGHT)
+        label.align_on_border(RIGHT+DOWN)
+        self.add(label)
 
     def add_convex_hull(self):
         hull = ConvexHull(self.samples)
@@ -64,15 +95,15 @@ class CoordSysExample(Scene):
             [self.ax.coords_to_point(x, y) for (x, y) in self.samples[vertices]]
         )
         path.set_color(RED)
-        self.play(FadeIn(VGroup(path, *circles)))
+        self.convex_hull = VGroup(path, *circles)
+        self.play(FadeIn(self.convex_hull))
 
     def add_text(self):
-        Integer(number=0)
-        Text(" training samples")
-        # number, text = label = VGroup(
-        #     Integer(number=0),
-        #     Text(" training samples"),
-        # )
-        # number.add_updater(lambda m: m.set_value(len(self.samples)))
-        # self.add(text)
-        # f_always(number.set_value, lambda: len(self.samples))
+        number, text = label = VGroup(
+            Integer(number=0),
+            Text(" training samples"),
+        )
+        text.next_to(number,RIGHT)
+        number.add_updater(lambda m: m.set_value(len(self.samples)))
+        label.align_on_border(LEFT+UP)
+        self.add(label)
