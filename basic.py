@@ -12,98 +12,121 @@ class CoordSysExample(Scene):
         self.add(self.ax, plane)
 
         self.samples = []
+        self.training_dots = []
+        self.test_samples = []
+        self.testing_dots = []
 
-        self.add_text()
         self.add_training_data(10)
+        vertices = self.compute_hull()
+        self.add_convex_hull(vertices)
         self.wait(1)
-        self.add_convex_hull()
-        self.wait(1)
-        self.add_test_data()
-        self.wait(3)
+        ratio = self.add_test_data(vertices)
+        group = VGroup(self.label_training,self.ax,plane,self.convex_hull,self.testing_dots,self.label_ratio, *self.training_dots)
+        self.play(group.animate.scale(0.65).to_corner(UL))
+        self.ax2 = Axes(x_range=[1, 100, 10], y_range=[0, 100, 10], tips=False,axis_config={"include_numbers": True}).scale(0.3).to_corner(DR)
+        self.play(Create(self.ax2))
+        self.add_ratio(ratio)
+        # labels = self.ax2.get_axis_labels(x_label_tex='training set size', y_label_tex='\% outside').set_color(BLUE)
+        # self.add(labels)
 
-        # Labels for the x-axis and y-axis.
-        # y_label = grid.get_y_axis_label("y", edge=LEFT, direction=LEFT, buff=0.4)
-        # x_label = grid.get_x_axis_label("x")
-        # grid_labels = VGroup(x_label, y_label)
-
-        # graphs = VGroup()
-        # for n in np.arange(1, 20 + 0.5, 0.5):
-        #     graphs += grid.plot(lambda x: x ** n, color=WHITE)
-        #     graphs += grid.plot(
-        #         lambda x: x ** (1 / n), color=WHITE, use_smoothing=False
-        #     )
-
-        # Extra lines and labels for point (1,1)
-        # title = Title(
-        #     # spaces between braces to prevent SyntaxError
-        #     r"Graphs of $y=x^1$ and $y=x^n (n=1,2,3,...,20)$",
-        #     include_underline=False,
-        #     font_size=40,
-        # )
+        for i in range(4):
+            self.play(FadeOut(self.testing_dots), FadeOut(self.convex_hull),FadeOut(self.label_ratio))
+            self.add_training_data(10)
+            vertices = self.compute_hull()
+            self.add_convex_hull(vertices)
+            ratio = self.add_test_data(vertices)
+            self.label_ratio[0].set_value(ratio)
+            self.add_ratio(ratio)
 
     def add_training_data(self,numbers):
-        self.dots = []
+        """
+        add training samples to existing list, and update the associated label
+        """
+        if len(self.samples)==0:
+            number, text = self.label_training = VGroup(
+                Integer(number=0),
+                Text(" training samples"),
+            )
+            text.next_to(number,RIGHT)
+            number.add_updater(lambda m: m.set_value(len(self.samples)))
+            self.label_training.align_on_border(LEFT+UP)
+
+
         for i in range(numbers):
             self.samples.append(np.random.rand(2) * 2 - 1)
-            self.dots.append(
+            self.training_dots.append(
                 Dot(self.ax.coords_to_point(self.samples[-1][0], self.samples[-1][1]))
             )
-            self.add(self.dots[-1])
-            fadein = FadeIn(self.dots[-1])
+            self.add(self.training_dots[-1])
+            fadein = FadeIn(self.training_dots[-1])
             fadein.set_run_time(0.2)
-            self.play(fadein)
-        self.samples = np.array(self.samples)
+            if len(self.samples)==1:
+                self.play(fadein,FadeIn(self.label_training))
+            else:
+                self.play(fadein)
 
-    def add_test_data(self):
-        dots = []
-        samples = []
-        for i in range(200):
-            samples.append(np.random.rand(2) * 2 - 1)
-            dots.append(
-                Dot(self.ax.coords_to_point(samples[-1][0], samples[-1][1]),color=GREEN,radius=0.05)
-            )
-        test_data = VGroup(*dots)
-        fadein = FadeIn(test_data)
-        self.play(fadein)
-        hull = ConvexHull(self.samples)
-        hull_path = Path(self.samples[hull.vertices])
+
+    def add_test_data(self,vertices):
+        if len(self.test_samples) == 0:
+            for i in range(200):
+                self.test_samples.append(np.random.rand(2) * 2 - 1)
+                self.testing_dots.append(
+                    Dot(self.ax.coords_to_point(self.test_samples[-1][0], self.test_samples[-1][1]),color=GREEN,radius=0.05)
+                )
+            self.testing_dots = VGroup(*self.testing_dots)
+
+        hull_path = Path([self.samples[u] for u in vertices])
         inside = 0.
-        for i in range(len(samples)):
-            inside += int(hull_path.contains_point(samples[i]))
-        inside /= len(samples)
+        for i in range(len(self.test_samples)):
+            inside += int(hull_path.contains_point(self.test_samples[i]))
+        inside /= len(self.test_samples)
         inside *= 100
-        print(inside)
-        number, text = label = VGroup(
-            DecimalNumber(inside),
-            Text("% lie within the hull"),
-        )
-        label.set_color(GREEN)
-        text.next_to(number,RIGHT)
-        label.align_on_border(RIGHT+DOWN)
-        self.add(label)
 
-    def add_convex_hull(self):
-        hull = ConvexHull(self.samples)
+        if not hasattr(self, 'label_ratio'):
+            number, text = self.label_ratio = VGroup(
+                DecimalNumber(inside),
+                Text("% lie within the hull"),
+            )
+            self.label_ratio.set_color(GREEN)
+            text.next_to(number,RIGHT)
+            self.label_ratio.align_on_border(RIGHT+DOWN)
+        else:
+            self.label_ratio[0].set_value(inside)
+
+        self.play(FadeIn(self.testing_dots))
+        self.play(FadeIn(self.label_ratio))
+        return inside
+
+
+    def compute_hull(self):
+        hull = ConvexHull(np.array(self.samples))
+        return hull.vertices
+
+
+    def add_convex_hull(self,vertices):
+
+
+        # create the circles that are the vertices of the hull
         circles = []
-        vertices = np.concatenate([hull.vertices, [hull.vertices[0]]])
+        vertices = np.concatenate([vertices, [vertices[0]]])
         for v in vertices:
             circle = Circle(radius=0.2, color=RED)
-            circle.move_to(self.dots[v])
+            circle.move_to(self.training_dots[v])
             circles.append(circle)
+
+        # path joining the vertives i.e. the convex hull boundary
         path = VMobject()
         path.set_points_as_corners(
-            [self.ax.coords_to_point(x, y) for (x, y) in self.samples[vertices]]
+            [self.ax.coords_to_point(*self.samples[u]) for u in vertices]
         )
         path.set_color(RED)
         self.convex_hull = VGroup(path, *circles)
         self.play(FadeIn(self.convex_hull))
 
-    def add_text(self):
-        number, text = label = VGroup(
-            Integer(number=0),
-            Text(" training samples"),
-        )
-        text.next_to(number,RIGHT)
-        number.add_updater(lambda m: m.set_value(len(self.samples)))
-        label.align_on_border(LEFT+UP)
-        self.add(label)
+
+    def add_ratio(self,ratio):
+        dot = Dot(self.ax2.c2p(len(self.samples), ratio))
+        print(ratio)
+        # h_line = self.ax2.get_h_line(dot)
+        # v_line = self.ax2.get_v_line(dot)
+        self.play(FadeIn(dot))
