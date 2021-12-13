@@ -19,7 +19,7 @@ class CoordSysExample(Scene):
         self.test_samples = []
         self.testing_dots = []
 
-        self.add_training_data(10)
+        self.add_training_data(3)
         vertices = self.compute_hull()
         self.add_convex_hull(vertices)
         self.wait(1)
@@ -35,7 +35,7 @@ class CoordSysExample(Scene):
         self.play(Create(VGroup(self.ax2,x_label,y_label)))
         self.add_ratio(ratio)
 
-        for i in range(6):
+        for i in range(5):
             self.play(FadeOut(self.testing_dots), FadeOut(self.convex_hull),FadeOut(self.label_ratio))
             self.add_training_data(10)
             vertices = self.compute_hull()
@@ -49,17 +49,22 @@ class CoordSysExample(Scene):
         add training samples to existing list, and update the associated label
         """
         if len(self.samples)==0:
-            number, text = self.label_training = VGroup(
-                Integer(number=0),
-                Text(" training samples"),
+
+            def make_text(str):
+                return Text(str, weight="SEMIBOLD", font="Open Sans", font_size=26)
+
+            text = self.label_training = VGroup(
+                make_text("training samples"),
             )
-            text.next_to(number,RIGHT)
-            number.add_updater(lambda m: m.set_value(len(self.samples)))
+            text.add_updater(lambda m: m.become(
+                 make_text(f"{len(self.samples)} training samples")
+                .align_on_border(LEFT+UP)
+                ))
+
             self.label_training.align_on_border(LEFT+UP)
             scale = 1
         else:
             scale=0.65
-
 
         for i in range(numbers):
             self.samples.append(np.random.rand(2) * 2 - 1)
@@ -70,7 +75,7 @@ class CoordSysExample(Scene):
             fadein = FadeIn(self.training_dots[-1])
             fadein.set_run_time(0.2)
             if len(self.samples)==1:
-                self.play(fadein,FadeIn(self.label_training))
+                self.play(fadein,Write(self.label_training))
             else:
                 self.play(fadein)
 
