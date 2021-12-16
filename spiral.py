@@ -29,22 +29,22 @@ def spiral(radius, step, resolution=.1, angle=0.0, start=0.0):
 class Spiral(Scene):
     def construct(self):
 
-        self.ax = Axes(x_range=[-1, 1, 0.1], y_range=[-1, 1, 0.1], tips=False,
-                    axis_config={"include_numbers": True,"font_size": 24},
-                    x_axis_config={"numbers_to_include": np.linspace(-1,1,7)[[0,1,2,4,5,6]]},
-                    y_axis_config={"numbers_to_include": np.linspace(-1,1,7)})
+    self.ax = Axes(x_range=[-1, 1, 0.1], y_range=[-1, 1, 0.1], tips=False,
+                axis_config={"include_numbers": True,"font_size": 24},
+                x_axis_config={"numbers_to_include": np.linspace(-1,1,7)[[0,1,2,4,5,6]]},
+                y_axis_config={"numbers_to_include": np.linspace(-1,1,7)})
 
-        self.add(self.ax)
+    self.add(self.ax)
 
 
-        coords = spiral(0.3, 0.01, resolution=.1, angle=350.0, start=0.0)
+    coords = spiral(0.3, 0.01, resolution=.1, angle=350.0, start=0.0)
 
-        for c in enumerate(coords):
+    for c in enumerate(coords):
 
-            line = Line((c[c[0]-1][0],c[c[0]-1][1]), (c[c[0]-1][0], c[c[0]-1][1],)).set_color(WHITE)
-            self.add(line)
-            
+        line = Line((c[c[0]-1][0],c[c[0]-1][1]), (c[c[0]-1][0], c[c[0]-1][1],)).set_color(WHITE)
+        self.add(line)
+        
 
-            self.add(
-                Dot(self.ax.coords_to_point(c[1][0],c[1][1]),color=GREEN,radius=0.05)
-            )
+        self.add(
+            Dot(self.ax.coords_to_point(c[1][0],c[1][1]),color=GREEN,radius=0.05)
+        )
