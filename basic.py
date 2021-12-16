@@ -24,8 +24,12 @@ class CoordSysExample(Scene):
         self.add_convex_hull(vertices)
         self.wait(1)
         ratio = self.add_test_data(vertices)
+        
+
         group = VGroup(self.label_training,self.ax,self.convex_hull,self.testing_dots,self.label_ratio, *self.training_dots)
         self.play(group.animate.scale(0.65).to_corner(UL))
+
+
         self.ax2 = Axes(x_range=[0, 100, 10], y_range=[0, 100, 10],tips=False,
                     axis_config={"include_numbers": True,"font_size": 50},
                     x_axis_config={"numbers_to_include": np.arange(0,100, 10)},
@@ -35,7 +39,7 @@ class CoordSysExample(Scene):
         self.play(Create(VGroup(self.ax2,x_label,y_label)))
         self.add_ratio(ratio)
 
-        for i in range(6):
+        for i in range(3):
             self.play(FadeOut(self.testing_dots), FadeOut(self.convex_hull),FadeOut(self.label_ratio))
             self.add_training_data(10)
             vertices = self.compute_hull()
@@ -49,19 +53,26 @@ class CoordSysExample(Scene):
         add training samples to existing list, and update the associated label
         """
         if len(self.samples)==0:
+
             number, text = self.label_training = VGroup(
-                Integer(number=0),
-                Text(" training samples"),
+                Integer(number=0, font_size=48, edge_to_fix=RIGHT),
+                Tex(" training samples", font_size=48), 
             )
-            text.next_to(number,RIGHT)
-            number.add_updater(lambda m: m.set_value(len(self.samples)))
+
+            number.align_to(text, UP)
+            number.next_to(text, RIGHT)
+
+            def update(m):
+                m.set_value(len(self.samples))
+
+            number.add_updater(update)
             self.label_training.align_on_border(LEFT+UP)
             scale = 1
         else:
             scale=0.65
 
 
-        for i in range(numbers):
+        for i in range(3):
             self.samples.append(np.random.rand(2) * 2 - 1)
             self.training_dots.append(
                 Dot(self.ax.coords_to_point(self.samples[-1][0], self.samples[-1][1])).scale(scale)
